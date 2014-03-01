@@ -245,7 +245,7 @@ This can be useful, for instance, if you have a node moduel that randomly change
 
 ```js
 var scope = nock('https://api.dropbox.com', {
-  scopeFiltering: function(scope) {
+  filteringScope: function(scope) {
     return /^https:\/\/api[0-9]*.dropbox.com/.test(scope);
   })
   .get('/1/metadata/auto/Photos?include_deleted=false&list=true')
@@ -546,7 +546,7 @@ var nockDefs = nock.loadDefs(pathToJson);
 nockDefs.forEach(function(def) {
   //  Do something with the definition object e.g. scope filtering.
   def.options = def.options || {};
-  def.options.scopeFiltering = function(scope) {
+  def.options.filteringScope = function(scope) {
     return /^https:\/\/api[0-9]*.dropbox.com/.test(scope);
   };
 }
