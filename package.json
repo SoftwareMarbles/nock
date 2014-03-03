@@ -80,6 +80,10 @@
     },
     {
       "name": "spenceralger"
+    },
+    {
+      "name": "Ivan Erceg",
+      "url": "https://github.com/ierceg"
     }
   ],
   "repository": {
@@ -95,7 +99,7 @@
   "main": "./index",
   "dependencies": {
     "propagate": "0.2.x",
-    "lodash": "2.4.*"
+    "lodash": "2.4.1"
   },
   "devDependencies": {
     "tap": "*",
