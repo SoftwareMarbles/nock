@@ -95,7 +95,7 @@
   "main": "./index",
   "dependencies": {
     "propagate": "0.2.x",
-    "lodash": "^2.4.1"
+    "lodash": "2.4.*"
   },
   "devDependencies": {
     "tap": "*",
