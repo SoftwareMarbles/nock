@@ -1,4 +1,6 @@
-# Nock [![Build Status](https://secure.travis-ci.org/pgte/nock.png)](http://travis-ci.org/pgte/nock)
+# Nock
+
+[![Codeship Status for SoftwareMarbles/nock:master](https://www.codeship.io/projects/862b7b50-8ce8-0131-50df-022d4aefe7ff/status?branch=master)](https://www.codeship.io/projects/15953)
 
 Nock is an HTTP mocking and expectations library for Node.js
 
