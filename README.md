@@ -8,6 +8,9 @@ Nock can be used to test modules that perform HTTP requests in isolation.
 
 For instance, if a module performs HTTP requests to a CouchDB server or makes HTTP requests to the Amazon API, you can test that module in isolation.
 
+This does NOT work with Browserify, only node.js
+
+
 # Install
 
 ```sh
@@ -212,6 +215,17 @@ nock('http://my.server.com')
 ```
 
 NOTE: the [`'response'`](http://nodejs.org/api/http.html#http_event_response) event will occur immediately, but the [IncomingMessage](http://nodejs.org/api/http.html#http_http_incomingmessage) not emit it's `'end'` event until after the delay.
+
+## Delay the connection
+
+You are able to specify the number of milliseconds that your connection should be delayed.
+
+```js
+nock('http://my.server.com')
+  .get('/')
+  .delayConnection(2000) // 2 seconds
+  .reply(200, '<html></html>')
+```
 
 ## Chaining
 

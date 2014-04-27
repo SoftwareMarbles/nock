@@ -2123,6 +2123,20 @@ test('superagent works with query string', function(t) {
   });
 });
 
+test('superagent posts', function(t) {
+  nock('http://superagent.cz')
+    .post('/somepath?b=c')
+    .reply(204);
+
+  superagent
+  .post('http://superagent.cz/somepath?b=c')
+  .send('some data')
+  .end(function(err, res) {
+    t.equal(res.status, 204);
+    t.end();
+  });
+});
+
 test('response is streams2 compatible', function(t) {
   var responseText = 'streams2 streams2 streams2';
   nock('http://stream2hostnameftw')
@@ -2319,3 +2333,88 @@ if (stream.Readable) {
     });
   });
 }
+
+test('calling delayConnection delays the connection', function (t) {
+  checkDuration(t, 25);
+
+  nock('http://funk')
+    .get('/')
+    .delayConnection(25)
+    .reply(200, 'OK');
+
+  http.get('http://funk/', function (res) {
+    res.setEncoding('utf8');
+
+    var body = '';
+
+    res.on('data', function(chunk) {
+      body += chunk;
+    });
+
+    res.once('end', function() {
+      t.equal(body, 'OK');
+      t.end();
+    });
+  });
+});
+
+test('using reply callback with delayConnection provides proper arguments', function (t) {
+  nock('http://localhost')
+    .get('/')
+    .delayConnection(25)
+    .reply(200, function (path, requestBody) {
+      t.equal(path, '/', 'path arg should be set');
+      t.equal(requestBody, 'OK', 'requestBody arg should be set');
+      t.end();
+    });
+
+  http.request('http://localhost/', function () {}).end('OK');
+});
+
+test('delayConnection works with replyWithFile', function (t) {
+  checkDuration(t, 25);
+  nock('http://localhost')
+    .get('/')
+    .delayConnection(25)
+    .replyWithFile(200, __dirname + '/../assets/reply_file_1.txt');
+
+  http.request('http://localhost/', function (res) {
+    res.setEncoding('utf8');
+
+    var body = '';
+
+    res.on('data', function(chunk) {
+      body += chunk;
+    });
+
+    res.once('end', function() {
+      t.equal(body, 'Hello from the file!', 'the body should eql the text from the file');
+      t.end();
+    });
+  }).end('OK');
+});
+
+test('delayConnection works with when you return a generic stream from the reply callback', function (t) {
+  checkDuration(t, 25);
+  nock('http://localhost')
+    .get('/')
+    .delayConnection(25)
+    .reply(200, function (path, reqBody) {
+      return fs.createReadStream(__dirname + '/../assets/reply_file_1.txt');
+    });
+
+  var req = http.request('http://localhost/', function (res) {
+    res.setEncoding('utf8');
+
+    var body = '';
+
+    res.on('data', function(chunk) {
+      body += chunk;
+    });
+
+    res.once('end', function() {
+      t.equal(body, 'Hello from the file!', 'the body should eql the text from the file');
+      t.end();
+    });
+  }).end('OK');
+});
