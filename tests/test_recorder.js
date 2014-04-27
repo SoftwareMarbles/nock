@@ -186,3 +186,19 @@ tap.test('records nonstandard ports', function(t) {
   });
 
 });
+
+tap.test('rec() throws when reenvoked with already recorder requests', function(t) {
+  nock.restore();
+  nock.recorder.clear();
+  t.equal(nock.recorder.play().length, 0);
+
+  nock.recorder.rec(true);
+  try {
+    nock.recorder.rec(true);
+    //  This line should never be reached.
+    t.ok(false);
+  } catch(e) {
+    t.end();
+  }
+
+});
