@@ -523,6 +523,7 @@ var nockCallObjects = nock.recorder.play();
 ```
 
 The returned call objects have the following properties:
+
  `scope` - the scope of the call including the protocol and non-standard ports (e.g. `'https://github.com:12345'`)
 
  `method` - the HTTP verb of the call (e.g. `'GET'`)
@@ -536,6 +537,8 @@ The returned call objects have the following properties:
  `response` - the body of the reply
 
  `headers` - the headers of the reply
+
+ `reqheader` - the headers of the request
 
 If you save this as a JSON file, you can load them directly through `nock.load(path)`. Then you can post-process them before using them in the tests for example to add them request body filtering (shown here fixing timestamps to match the ones captured during recording):
 

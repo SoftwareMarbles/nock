@@ -95,7 +95,7 @@ tap.test('when request body is json, it goes unstringified', function(t) {
       ret = ret[1] || ret[0];
       t.equal(ret.indexOf("\nnock('http://www.google.com:80')\n  .post('/', {\"a\":1,\"b\":true})\n  .reply("), 0);
       t.end();
-    })
+    });
   });
 
   request.end(JSON.stringify(payload));
@@ -130,7 +130,7 @@ tap.test('when request body is json, it goes unstringified in objects', function
       t.ok(typeof(ret.status) !== 'undefined');
       t.ok(typeof(ret.response) !== 'undefined');
       t.end();
-    })
+    });
   });
 
   request.end(JSON.stringify(payload));
@@ -198,11 +198,12 @@ tap.test('rec() throws when reenvoked with already recorder requests', function(
   nock.recorder.clear();
   t.equal(nock.recorder.play().length, 0);
 
-  nock.recorder.rec(true);
+  nock.recorder.rec();
   try {
-    nock.recorder.rec(true);
+    nock.recorder.rec();
     //  This line should never be reached.
     t.ok(false);
+    t.end();
   } catch(e) {
     t.end();
   }
