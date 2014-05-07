@@ -7,7 +7,7 @@
     "testing",
     "isolation"
   ],
-  "version": "0.28.3",
+  "version": "0.29.0",
   "author": "Pedro Teixeira <pedro.teixeira@gmail.com>",
   "contributors": [
     {
@@ -109,7 +109,7 @@
     "superagent": "~0.15.7"
   },
   "scripts": {
-    "test": "node node_modules/tap/bin/tap.js tests"
+    "test": "node node_modules/tap/bin/tap.js --dd tests"
   },
   "license": "MIT"
 }
