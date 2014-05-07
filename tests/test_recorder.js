@@ -1,8 +1,7 @@
 var nock    = require('../.')
   , tap     = require('tap')
   , http    = require('http')
-  , https   = require('https')
-  , debug   = require('debug')('nock.test_recorder');
+  , https   = require('https');
 
 tap.test('recording turns off nock interception (backward compatibility behavior)', function(t) {
 
@@ -171,11 +170,8 @@ tap.test('rec() throws when reenvoked with already recorder requests', function(
 });
 
 tap.test('records https correctly', function(t) {
-  debug('nock.restore()');
   nock.restore();
-  debug('nock.recorder.clear()');
   nock.recorder.clear();
-  debug('nock.recorder.play()');
   t.equal(nock.recorder.play().length, 0);
 
   var options = { method: 'POST'
@@ -183,20 +179,15 @@ tap.test('records https correctly', function(t) {
                 , path:'/' }
   ;
 
-  debug('nock.recorder.rec()');
   nock.recorder.rec({
     dont_print: true,
     output_objects: true
   });
 
-  debug('starting a request');
   var req = https.request(options, function(res) {
-    debug('starting to receive response');
     res.resume();
     var ret;
-    debug('defining end handler');
     res.once('end', function() {
-      debug('response ended');
       nock.restore();
       ret = nock.recorder.play();
       t.equal(ret.length, 1);
@@ -209,6 +200,5 @@ tap.test('records https correctly', function(t) {
       t.end();
     });
   });
-  debug('ending request');
   req.end('012345');
 });
