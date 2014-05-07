@@ -57,7 +57,7 @@ tap.test('records objects', function(t) {
       t.end();
     });
   });
-  req.end('ABCDEF');
+  req.end('012345');
 });
 
 tap.test('checks if callback is specified', function(t) {
@@ -246,7 +246,7 @@ tap.test('define() works with non-JSON responses', function(t) {
   req.on('response', function(res) {
     t.equal(res.statusCode, nockDef.status);
 
-    var dataChunks = []
+    var dataChunks = [];
 
     res.on('data', function(chunk) {
       dataChunks.push(chunk);

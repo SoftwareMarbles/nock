@@ -1327,7 +1327,7 @@ test("complaints if https route is missing", function(t) {
       throw new Error('should not come here!');
     }).end();
   } catch (err) {
-    t.ok(err.message.match(/No match for HTTP request GET \/abcdef892932/));
+    t.ok(err.message.match(/No match for request GET https:\/\/google.com\/abcdef892932/));
     t.end();
   }
 
@@ -1509,11 +1509,12 @@ test("allow unmocked option works", function(t) {
         host: "www.google.com"
       , path: "/"
       , port: 80
-    }, function(res) {
-      res.destroy();
-      t.assert(res.statusCode < 400 && res.statusCode >= 200, 'GET Google Home page');
-      t.end();
-    }).end();
+      }, function(res) {
+        res.destroy();
+        t.assert(res.statusCode < 400 && res.statusCode >= 200, 'GET Google Home page');
+        t.end();
+      }
+    ).end();
   }
 
   function firstIsDone() {
@@ -1522,20 +1523,22 @@ test("allow unmocked option works", function(t) {
         host: "www.google.com"
       , path: "/does/not/exist/dskjsakdj"
       , port: 80
-    }, function(res) {
-      t.assert(res.statusCode === 404, 'Google say it does not exist');
-      res.on('data', function() {});
-      res.on('end', secondIsDone);
-    }).end();
+      }, function(res) {
+        t.assert(res.statusCode === 404, 'Google say it does not exist');
+        res.on('data', function() {});
+        res.on('end', secondIsDone);
+      }
+    ).end();
   }
 
   http.request({
       host: "www.google.com"
     , path: "/abc"
     , port: 80
-  }, function(res) {
-    res.on('end', firstIsDone);
-  }).end();
+    }, function(res) {
+      res.on('end', firstIsDone);
+    }
+  ).end();
 });
 
 test("default reply headers work", function(t) {
