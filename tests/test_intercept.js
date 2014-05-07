@@ -2433,7 +2433,7 @@ test('define() is backward compatible', function(t) {
     "reply":"500"
   };
 
-  nocks = nock.define([nockDef]);
+  var nocks = nock.define([nockDef]);
 
   t.ok(nocks);
 
@@ -2471,7 +2471,7 @@ test('define() works with non-JSON responses', function(t) {
     "response":"�"
   };
 
-  nocks = nock.define([nockDef]);
+  var nocks = nock.define([nockDef]);
 
   t.ok(nocks);
 
@@ -2503,6 +2503,52 @@ test('define() works with non-JSON responses', function(t) {
   });
 
   req.write(nockDef.body);
+  req.end();
+
+});
+
+test('define() works with binary buffers', function(t) {
+  var nockDef = {
+    "scope":"http://example.com",
+    "method":"POST",
+    "path":"/",
+    "body":"8001",
+    "status":200,
+    "response":"8001"
+  };
+
+  var nocks = nock.define([nockDef]);
+
+  t.ok(nocks);
+
+  var req = new http.request({
+    host: 'example.com',
+    method: nockDef.method,
+    path: nockDef.path
+  }, function(res) {
+    t.equal(res.statusCode, nockDef.status);
+
+    var dataChunks = [];
+
+    res.on('data', function(chunk) {
+      dataChunks.push(chunk);
+    });
+
+    res.once('end', function() {
+      var response = Buffer.concat(dataChunks);
+      t.equal(response.toString('hex'), nockDef.response, 'responses match');
+      t.end();
+    });
+  });
+
+  req.on('error', function(err) {
+    console.error(err);
+    //  This should never happen.
+    t.ok(false, 'Error should never occur.');
+    t.end();
+  });
+
+  req.write(new Buffer(nockDef.body, 'hex'));
   req.end();
 
 });
