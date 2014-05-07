@@ -1,6 +1,7 @@
 var nock    = require('../.')
   , tap     = require('tap')
-  , http    = require('http');
+  , http    = require('http')
+  , https   = require('https');
 
 tap.test('recording turns off nock interception (backward compatibility behavior)', function(t) {
 
@@ -224,4 +225,36 @@ tap.test('rec() throws when reenvoked with already recorder requests', function(
     t.end();
   }
 
+});
+
+tap.test('records https correctly', function(t) {
+  nock.restore();
+  nock.recorder.clear();
+  t.equal(nock.recorder.play().length, 0);
+  var options = { method: 'POST'
+                , host:'google.com'
+                , path:'/' }
+  ;
+
+  nock.recorder.rec({
+    dont_print: true,
+    output_objects: true
+  });
+  var req = https.request(options, function(res) {
+    res.resume();
+    var ret;
+    res.once('end', function() {
+      nock.restore();
+      ret = nock.recorder.play();
+      t.equal(ret.length, 1);
+      var ret = ret[0];
+      t.type(ret, 'object');
+      t.equal(ret.scope, "https://google.com:80");
+      t.equal(ret.method, "POST");
+      t.ok(typeof(ret.status) !== 'undefined');
+      t.ok(typeof(ret.response) !== 'undefined');
+      t.end();
+    });
+  });
+  req.end('012345');
 });
