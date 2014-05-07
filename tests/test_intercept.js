@@ -9,6 +9,19 @@ var test    = require('tap').test;
 var mikealRequest = require('request');
 var superagent = require('superagent');
 
+test("double activation throws exception", function(t) {
+  nock.restore();
+  try {
+    nock.activate();
+    nock.activate();
+    //  This line should never be reached.
+    t.false(true);
+  } catch(e) {
+    t.equal(e.toString(), '');
+  }
+  t.end();
+});
+
 test("allow override works (2)", function(t) {
   var scope =
   nock("https://httpbin.org",{allowUnmocked: true}).

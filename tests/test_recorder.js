@@ -14,6 +14,7 @@ tap.test('recording turns off nock interception (backward compatibility behavior
   t.ok(true);
 
   t.end();
+
 });
 
 tap.test('records', function(t) {
@@ -219,58 +220,8 @@ tap.test('rec() throws when reenvoked with already recorder requests', function(
     t.ok(false);
     t.end();
   } catch(e) {
+    t.equal(e.toString(), 'Error: Nock recording already in progress');
     t.end();
   }
-
-});
-
-tap.test('define() works with non-JSON responses', function(t) {
-  nock.restore();
-  nock.recorder.clear();
-  t.equal(nock.recorder.play().length, 0);
-
-  var nockDef = {
-    "scope":"http://tests.com",
-    "method":"POST",
-    "path":"/",
-    "body":"�",
-    "status":200,
-    "response":"�"
-  };
-
-  nocks = nock.define([nockDef]);
-
-  t.ok(nocks);
-
-  var req = new http.ClientRequest({
-    host: 'tests.com',
-    method: nockDef.method,
-    path: nockDef.path
-  });
-  req.write(nockDef.body);
-  req.end();
-
-  req.on('error', function(err) {
-    console.error(err);
-    //  This should never happen.
-    t.ok(false, 'Error should never occur.');
-    t.end();
-  });
-
-  req.on('response', function(res) {
-    t.equal(res.statusCode, nockDef.status);
-
-    var dataChunks = [];
-
-    res.on('data', function(chunk) {
-      dataChunks.push(chunk);
-    });
-
-    res.once('end', function() {
-      var response = Buffer.concat(dataChunks);
-      t.equal(response.toString('utf8'), nockDef.response, 'responses match');
-      t.end();
-    });
-  });
 
 });
