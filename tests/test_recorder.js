@@ -2,6 +2,20 @@ var nock    = require('../.')
   , tap     = require('tap')
   , http    = require('http');
 
+tap.test('recording turns off nock interception (backward compatibility behavior)', function(t) {
+
+  //  We ensure that there are no overrides.
+  nock.restore();
+  //  We active the nock overriding - as it's done by merely loading nock.
+  nock.activate();
+  //  We start recording.
+  nock.recorder.rec();
+  //  Nothing happens - which was the original behavior.
+  t.ok(true);
+
+  t.end();
+});
+
 tap.test('records', function(t) {
   nock.restore();
   nock.recorder.clear();
