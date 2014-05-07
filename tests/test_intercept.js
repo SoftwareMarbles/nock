@@ -17,7 +17,7 @@ test("double activation throws exception", function(t) {
     //  This line should never be reached.
     t.false(true);
   } catch(e) {
-    t.equal(e.toString(), '');
+    t.equal(e.toString(), 'Error: Nock already active');
   }
   t.end();
 });
