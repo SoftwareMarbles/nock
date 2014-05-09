@@ -178,20 +178,16 @@ tap.test('records nonstandard ports', function(t) {
       dont_print: true,
       output_objects: true
     };
-    //  It's crazy to test this but it's also crazy to have randomly failing tests.
-    t.ok(rec_options.dont_print);
-    t.ok(rec_options.output_objects);
 
     nock.recorder.rec(rec_options);
 
     var req = http.request(options, function(res) {
       res.resume();
-      var ret;
       res.once('end', function() {
         nock.restore();
-        ret = nock.recorder.play();
-        t.ok(ret.length >= 1);
-        var ret = ret[0];
+        var ret = nock.recorder.play();
+        t.equal(ret.length, 1);
+        ret = ret[0];
         t.type(ret, 'object');
         t.equal(ret.scope, "http://localhost:" + options.port);
         t.equal(ret.method, "GET");
