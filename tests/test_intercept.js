@@ -1,3 +1,4 @@
+
 var fs      = require('fs');
 var nock    = require('../.');
 var http    = require('http');
@@ -9,6 +10,9 @@ var test    = require('tap').test;
 var mikealRequest = require('request');
 var superagent = require('superagent');
 var _       = require('lodash');
+var needle  = require("needle");
+var restify = require('restify');
+var domain  = require('domain');
 
 test("double activation throws exception", function(t) {
   nock.restore();
@@ -1618,6 +1622,23 @@ test("JSON encoded replies does not overwrite existing content-type header", fun
   }, done).end();
 });
 
+test("blank response doesn't have content-type application/json attached to it", function(t) {
+  var scope = nock('http://localhost')
+    .get('/')
+    .reply(200);
+
+  function done(res) {
+    t.equal(res.statusCode, 200);
+    t.notEqual(res.headers['content-type'], "application/json");
+    t.end();
+  }
+
+  http.request({
+      host: 'localhost'
+    , path: '/'
+  }, done).end();
+});
+
 test('clean all works', function(t) {
   var scope = nock('http://amazon.com')
     .get('/nonexistent')
@@ -1992,6 +2013,36 @@ test('disabled real HTTP request', function(t) {
     });
   } catch(err) {
     t.equal(err.message, 'Nock: Not allow net connect for "www.amazon.com:80"');
+    t.end();
+  }
+
+  nock.enableNetConnect();
+});
+
+test('NetConnectNotAllowedError is instance of Error', function(t) {
+  nock.disableNetConnect();
+
+  try {
+    http.get('http://www.amazon.com', function(res) {
+      throw "should not request this";
+    });
+  } catch(err) {
+    t.type(err, 'Error');
+    t.end();
+  }
+
+  nock.enableNetConnect();
+});
+
+test('NetConnectNotAllowedError exposes the stack', function(t) {
+  nock.disableNetConnect();
+
+  try {
+    http.get('http://www.amazon.com', function(res) {
+      throw "should not request this";
+    });
+  } catch(err) {
+    t.notEqual(err.stack, undefined);
     t.end();
   }
 
@@ -2664,4 +2715,237 @@ test('sending binary and receiving JSON should work ', function(t) {
       t.end();
     }
   );
+});
+
+test('fix #146 - resume() is automatically invoked when the response is drained', function(t) {
+  var replyLength = 1024 * 1024;
+  var replyBuffer = new Buffer((new Array(replyLength + 1)).join("."));
+  t.equal(replyBuffer.length, replyLength);
+
+  nock("http://www.abc.com")
+    .get("/abc")
+    .reply(200, replyBuffer);
+
+  needle.get("http://www.abc.com/abc", function(err, res, buffer) {
+    t.notOk(err);
+    t.ok(res);
+    t.ok(buffer);
+    t.equal(buffer, replyBuffer);
+    t.end();
+  });
+});
+
+test("handles get with restify client", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    get("/get").
+    reply(200, 'get');
+
+  var client = restify.createClient({
+    url: 'https://www.example.com'
+  })
+
+  client.get('/get', function(err, req, res) {
+    req.on('result', function(err, res) {
+      res.body = '';
+      res.setEncoding('utf8');
+      res.on('data', function(chunk) {
+        res.body += chunk;
+      });
+
+      res.on('end', function() {
+        t.equal(res.body, 'get')
+        t.end();
+        scope.done();
+      });
+    });
+  });
+});
+
+test("handles post with restify client", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    post("/post", 'hello world').
+    reply(200, 'post');
+
+  var client = restify.createClient({
+    url: 'https://www.example.com'
+  })
+
+  client.post('/post', function(err, req, res) {
+    req.on('result', function(err, res) {
+      res.body = '';
+      res.setEncoding('utf8');
+      res.on('data', function(chunk) {
+        res.body += chunk;
+      });
+
+      res.on('end', function() {
+        t.equal(res.body, 'post')
+        t.end();
+        scope.done();
+      });
+    });
+
+    req.write('hello world');
+    req.end();
+  });
+});
+
+test("handles get with restify JsonClient", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    get("/get").
+    reply(200, {get: 'ok'});
+
+  var client = restify.createJsonClient({
+    url: 'https://www.example.com'
+  })
+
+  client.get('/get', function(err, req, res, obj) {
+    t.equal(obj.get, 'ok');
+    t.end();
+    scope.done();
+  });
+});
+
+test("handles post with restify JsonClient", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    post("/post", {username: 'banana'}).
+    reply(200, {post: 'ok'});
+
+  var client = restify.createJsonClient({
+    url: 'https://www.example.com'
+  })
+
+  client.post('/post', {username: 'banana'}, function(err, req, res, obj) {
+    t.equal(obj.post, 'ok');
+    t.end();
+    scope.done();
+  });
+});
+
+test("handles 404 with restify JsonClient", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    put("/404").
+    reply(404);
+
+  var client = restify.createJsonClient({
+    url: 'https://www.example.com'
+  })
+
+  client.put('/404', function(err, req, res, obj) {
+    t.equal(res.statusCode, 404);
+    t.end();
+    scope.done();
+  });
+});
+
+test("handles 500 with restify JsonClient", function(t) {
+  var scope =
+  nock("https://www.example.com").
+    delete("/500").
+    reply(500);
+
+  var client = restify.createJsonClient({
+    url: 'https://www.example.com'
+  })
+
+  client.del('/500', function(err, req, res, obj) {
+    t.equal(res.statusCode, 500);
+    t.end();
+    scope.done();
+  });
+});
+
+test('test request timeout option', function(t) {
+
+  nock('http://example.com')
+    .get('/test')
+    .reply(200, JSON.stringify({ foo: 'bar' }));
+
+  var options = {
+    url: 'http://example.com/test',
+    method: 'GET',
+    timeout: 2000
+  };
+
+  mikealRequest(options, function(err, res, body) {
+    t.strictEqual(err, null);
+    t.equal(body, '{"foo":"bar"}');
+    t.end();
+  });
+});
+
+
+test('done fails when specified request header is missing', function(t) {
+  scope = nock('http://example.com', {
+    reqheaders: {
+      "X-App-Token": "apptoken",
+      "X-Auth-Token": "apptoken"
+    }
+  })
+  .post('/resource')
+  .reply(200, { status: "ok" });
+
+  d = domain.create();
+
+  d.run(function() {
+    mikealRequest({
+      method: 'POST',
+      uri: 'http://example.com/resource',
+      headers: {
+        "X-App-Token": "apptoken"
+      }
+    });
+  });
+
+  d.once('error', function(err) {
+    t.ok(err.message.match(/No match/));
+    t.end();
+  });
+});
+
+test('done does not fail when specified request header is not missing', function(t) {
+  scope = nock('http://example.com', {
+    reqheaders: {
+      "X-App-Token": "apptoken",
+      "X-Auth-Token": "apptoken"
+    }
+  })
+  .post('/resource')
+  .reply(200, { status: "ok" });
+
+  mikealRequest({
+    method: 'POST',
+    uri: 'http://example.com/resource',
+    headers: {
+      "X-App-Token": "apptoken",
+      "X-Auth-Token": "apptoken"
+    }
+  }, function(err, res, body) {
+    t.type(err, 'null');
+    t.equal(res.statusCode, 200);
+    t.end();
+  });
+
+});
+
+test('mikeal/request with delayConnection and request.timeout', function(t) {
+  endpoint = nock("http://some-server.com")
+    .post("/")
+    .delayConnection(1000)
+    .reply(200, {});
+
+  mikealRequest.post({
+      url: "http://some-server.com/",
+      timeout: 10
+    },
+    function (err) {
+      t.type(err, 'Error');
+      t.equal(err && err.code, "ETIMEDOUT");
+      t.end();
+  });
 });

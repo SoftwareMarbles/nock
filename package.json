@@ -7,7 +7,7 @@
     "testing",
     "isolation"
   ],
-  "version": "0.31.1",
+  "version": "0.34.1",
   "author": "Pedro Teixeira <pedro.teixeira@gmail.com>",
   "contributors": [
     {
@@ -95,7 +95,7 @@
     "url": "http://github.com/pgte/nock/issues"
   },
   "engines": [
-    "node >= 0.4.10"
+    "node >= 0.10.0"
   ],
   "main": "./index",
   "dependencies": {
@@ -106,7 +106,9 @@
   "devDependencies": {
     "tap": "*",
     "request": "*",
-    "superagent": "~0.15.7"
+    "superagent": "~0.15.7",
+    "needle": "^0.7.1",
+    "restify": "^2.8.1"
   },
   "scripts": {
     "test": "node node_modules/tap/bin/tap.js --dd tests"
