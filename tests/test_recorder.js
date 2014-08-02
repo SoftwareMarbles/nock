@@ -271,7 +271,8 @@ tap.test('records request headers correctly', function(t) {
 
   nock.recorder.rec({
     dont_print: true,
-    output_objects: true
+    output_objects: true,
+    enable_reqheaders_recording: true
   });
 
   var req = http.request({
@@ -413,15 +414,14 @@ tap.test('records and replays nocks correctly', function(t) {
 
 });
 
-tap.test('doesn\'t record request headers when suppress_reqheaders_recording is set to true', function(t) {
+tap.test('doesn\'t record request headers by default', function(t) {
   nock.restore();
   nock.recorder.clear();
   t.equal(nock.recorder.play().length, 0);
 
   nock.recorder.rec({
     dont_print: true,
-    output_objects: true,
-    suppress_reqheaders_recording: true
+    output_objects: true
   });
 
   var req = http.request({
@@ -443,4 +443,58 @@ tap.test('doesn\'t record request headers when suppress_reqheaders_recording is 
     }
   );
   req.end();
+});
+
+tap.test('records request headers except user-agent if enable_reqheaders_recording is set to true', function(t) {
+  nock.restore();
+  nock.recorder.clear();
+  t.equal(nock.recorder.play().length, 0);
+
+  nock.recorder.rec({
+    dont_print: true,
+    output_objects: true,
+    enable_reqheaders_recording: true
+  });
+
+  var req = http.request({
+      hostname: 'www.example.com',
+      path: '/',
+      method: 'GET',
+      auth: 'foo:bar'
+    }, function(res) {
+      res.resume();
+      res.once('end', function() {
+        nock.restore();
+        var ret = nock.recorder.play();
+        t.equal(ret.length, 1);
+        ret = ret[0];
+        t.type(ret, 'object');
+        t.true(ret.reqheaders);
+        t.false(ret.reqheaders['user-agent']);
+        t.end();
+      });
+    }
+  );
+  req.end();
+});
+
+tap.test('includes query parameters from superagent', function(t) {
+    nock.restore();
+    nock.recorder.clear();
+    t.equal(nock.recorder.play().length, 0);
+
+    nock.recorder.rec({
+        dont_print: true,
+        output_objects: true
+    });
+
+    superagent.get('http://google.com')
+        .query({q: 'test search' })
+        .end(function(res) {
+            nock.restore();
+            var ret = nock.recorder.play();
+            t.true(ret.length >= 1);
+            t.equal(ret[0].path, '/?q=test%20search');
+            t.end();
+        });
 });

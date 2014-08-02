@@ -18,14 +18,14 @@ tap.test('isBinaryBuffer works', function(t) {
 
 });
 
-tap.test('headerKeysToLowerCase works', function(t) {
+tap.test('headersFieldNamesToLowerCase works', function(t) {
 
   var headers = {
     'HoSt': 'example.com',
     'Content-typE': 'plain/text'
   };
 
-  var lowerCaseHeaders = common.headerKeysToLowerCase(headers);
+  var lowerCaseHeaders = common.headersFieldNamesToLowerCase(headers);
 
   t.equal(headers.HoSt, lowerCaseHeaders.host);
   t.equal(headers['Content-typE'], lowerCaseHeaders['content-type']);
@@ -33,7 +33,7 @@ tap.test('headerKeysToLowerCase works', function(t) {
 
 });
 
-tap.test('headerKeysToLowerCase throws on conflicting keys', function(t) {
+tap.test('headersFieldNamesToLowerCase throws on conflicting keys', function(t) {
 
   var headers = {
     'HoSt': 'example.com',
@@ -41,11 +41,29 @@ tap.test('headerKeysToLowerCase throws on conflicting keys', function(t) {
   };
 
   try {
-    common.headerKeysToLowerCase(headers);
+    common.headersFieldNamesToLowerCase(headers);
   } catch(e) {
-    t.equal(e.toString(), 'Error: Failed to convert header keys to lower case due to key conflict: host');
+    t.equal(e.toString(), 'Error: Failed to convert header keys to lower case due to field name conflict: host');
     t.end();
   }
 
 });
 
+tap.test('deleteHeadersField deletes fields with case-insensitive field names', function(t) {
+
+  var headers = {
+    HoSt: 'example.com',
+    'Content-typE': 'plain/text'
+  };
+
+  t.true(headers.HoSt);
+  t.true(headers['Content-typE']);
+
+  common.deleteHeadersField(headers, 'HOST');
+  common.deleteHeadersField(headers, 'CONTENT-TYPE');
+
+  t.false(headers.HoSt);
+  t.false(headers['Content-typE']);
+  t.end();
+
+});

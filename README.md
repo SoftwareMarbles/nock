@@ -124,11 +124,19 @@ var scope = nock('http://www.google.com')
    });
 ```
 
+<<<<<<< HEAD
 ## Specifiying headers
 
 ### Header field names are case-insensitive
 
 Per [HTTP/1.1 4.2 Message Headers](http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2) specification, all message headers are case insensitive and internally Nock uses lower-case for all field names even if some other combination of cases was specified either in mocking specification or in mocked requests themselves.
+=======
+## Specifying headers
+
+### Header field names are case-insensitive
+
+Per [HTTP/1.1 4.2 Message Headers](http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2) specification, all message headers are case insensitive and thus internally Nock uses lower-case for all field names even if some other combination of cases was specified either in mocking specification or in mocked requests themselves.
+>>>>>>> upstream/master
 
 ### Specifying Request Headers
 
@@ -318,6 +326,8 @@ var scope = nock('http://api.myservice.com')
                 .reply(200, 'user');
 ```
 
+Note that `scope.filteringPath` is not cummulative: it should only be used once per scope.
+
 ## Request Body filtering
 
 You can also filter the request body based on a function.
@@ -362,6 +372,19 @@ You can also use a regexp for the header body.
 ```js
 var scope = nock('http://api.myservice.com')
                 .matchHeader('User-Agent', /Mozilla\/.*/)
+                .get('/')
+                .reply(200, {
+                  data: 'hello world'
+                })
+```
+
+You can also use a function for the header body.
+
+```js
+var scope = nock('http://api.myservice.com')
+                .matchHeader('content-length', function (val) {
+                  return val >= 1000;
+                })
                 .get('/')
                 .reply(200, {
                   data: 'hello world'
@@ -537,7 +560,11 @@ Copy and paste that code into your tests, customize at will, and you're done!
 
 (Remember that you should do this one test at a time).
 
+<<<<<<< HEAD
 ## `output_object` option
+=======
+## `output_objects` option
+>>>>>>> upstream/master
 
 In case you want to generate the code yourself or use the test data in some other way, you can pass the `output_objects` option to `rec`:
 
@@ -594,19 +621,35 @@ nockDefs.forEach(function(def) {
 var nocks = nock.define(nockDefs);
 ```
 
+<<<<<<< HEAD
 ## `suppress_reqheaders_recording` option
 
 Sometimes it's hard to provide correct request headers as some of them depend on the timestamp or other values that may change after the tests have been recorder. To suppress recording of request headers set `suppress_reqheaders_recording` option property equal to `true`.
+=======
+## `enable_reqheaders_recording` option
+
+Recording request headers by default is deemed more trouble than its worth as some of them depend on the timestamp or other values that may change after the tests have been recorder thus leading to complex postprocessing of recorded tests. Thus by default the request headers are not recorded.
+
+The genuine use cases for recording request headers (e.g. checking authorization) can be handled manually or by using `enable_reqheaders_recording` in `recorder.rec()` options.
+>>>>>>> upstream/master
 
 ```js
 nock.recorder.rec({
   dont_print: true,
   output_objects: true,
+<<<<<<< HEAD
   suppress_reqheaders_recording: true
 });
 ```
 
 This uses Nock's property to skip request headers matching when no mocking request headers are specified.
+=======
+  enable_reqheaders_recording: true
+});
+```
+
+Note that even when request headers recording is enabled Nock will never record `user-agent` headers. `user-agent` values change with the version of Node and underlying operating system and are thus useless for matching as all that they can indicate is that the user agent isn't the one that was used to record the tests.
+>>>>>>> upstream/master
 
 # How does it work?
 
