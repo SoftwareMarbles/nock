@@ -15,6 +15,7 @@ var restify = require('restify');
 var domain  = require('domain');
 var hyperquest = require('hyperquest');
 
+
 test("double activation throws exception", function(t) {
   nock.restore();
   t.false(nock.isActive());
@@ -915,6 +916,37 @@ test("reply with file and pipe response", function(t) {
     t.equal(res.statusCode, 200);
 
   });
+
+});
+
+test("reply with file with headers", function(t) {
+  var dataCalled = false
+
+  var scope = nock('http://www.filereplier2.com')
+    .get('/')
+    .replyWithFile(200, __dirname + '/../assets/reply_file_2.txt.gz', {
+      'content-encoding': 'gzip'
+    });
+
+  var req = http.request({
+      host: "www.filereplier2.com"
+    , path: '/'
+    , port: 80
+  }, function(res) {
+
+    t.equal(res.statusCode, 200);
+    res.on('end', function() {
+      t.ok(dataCalled);
+      t.end();
+    });
+    res.on('data', function(data) {
+      dataCalled = true;
+      t.equal(data.length, 57);
+    });
+
+  });
+
+  req.end();
 
 });
 
@@ -2345,17 +2377,20 @@ function checkDuration(t, ms) {
       (fin[0] * 1e+9) +  // seconds -> ms
       (fin[1] * 1e-6); // nanoseconds -> ms
 
+    /// innaccurate timers
+    ms = ms * 0.9;
+
     t.ok(finMs >= ms, 'Duration of ' + Math.round(finMs) + 'ms should be longer than ' + ms + 'ms');
     _end.call(t);
   };
 }
 
 test('calling delay delays the response', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
 
   nock('http://funk')
     .get('/')
-    .delay(25)
+    .delay(100)
     .reply(200, 'OK');
 
   http.get('http://funk/', function (res) {
@@ -2377,7 +2412,7 @@ test('calling delay delays the response', function (t) {
 test('using reply callback with delay provides proper arguments', function (t) {
   nock('http://localhost')
     .get('/')
-    .delay(25)
+    .delay(100)
     .reply(200, function (path, requestBody) {
       t.equal(path, '/', 'path arg should be set');
       t.equal(requestBody, 'OK', 'requestBody arg should be set');
@@ -2388,10 +2423,10 @@ test('using reply callback with delay provides proper arguments', function (t) {
 });
 
 test('delay works with replyWithFile', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
   nock('http://localhost')
     .get('/')
-    .delay(25)
+    .delay(100)
     .replyWithFile(200, __dirname + '/../assets/reply_file_1.txt');
 
   http.request('http://localhost/', function (res) {
@@ -2411,10 +2446,10 @@ test('delay works with replyWithFile', function (t) {
 });
 
 test('delay works with when you return a generic stream from the reply callback', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
   nock('http://localhost')
     .get('/')
-    .delay(25)
+    .delay(100)
     .reply(200, function (path, reqBody) {
       return fs.createReadStream(__dirname + '/../assets/reply_file_1.txt');
     });
@@ -2504,11 +2539,11 @@ if (stream.Readable) {
 }
 
 test('calling delayConnection delays the connection', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
 
   nock('http://funk')
     .get('/')
-    .delayConnection(25)
+    .delayConnection(100)
     .reply(200, 'OK');
 
   http.get('http://funk/', function (res) {
@@ -2530,7 +2565,7 @@ test('calling delayConnection delays the connection', function (t) {
 test('using reply callback with delayConnection provides proper arguments', function (t) {
   nock('http://localhost')
     .get('/')
-    .delayConnection(25)
+    .delayConnection(100)
     .reply(200, function (path, requestBody) {
       t.equal(path, '/', 'path arg should be set');
       t.equal(requestBody, 'OK', 'requestBody arg should be set');
@@ -2541,10 +2576,10 @@ test('using reply callback with delayConnection provides proper arguments', func
 });
 
 test('delayConnection works with replyWithFile', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
   nock('http://localhost')
     .get('/')
-    .delayConnection(25)
+    .delayConnection(100)
     .replyWithFile(200, __dirname + '/../assets/reply_file_1.txt');
 
   http.request('http://localhost/', function (res) {
@@ -2564,10 +2599,10 @@ test('delayConnection works with replyWithFile', function (t) {
 });
 
 test('delayConnection works with when you return a generic stream from the reply callback', function (t) {
-  checkDuration(t, 25);
+  checkDuration(t, 100);
   nock('http://localhost')
     .get('/')
-    .delayConnection(25)
+    .delayConnection(100)
     .reply(200, function (path, reqBody) {
       return fs.createReadStream(__dirname + '/../assets/reply_file_1.txt');
     });
@@ -3230,6 +3265,50 @@ test("match basic authentication header", function(t) {
 
 });
 
+test('request emits socket', function(t) {
+  var scope = nock('http://gotzsocketz.com')
+     .get('/')
+     .reply(200, "hey");
+
+  var req = http.get('http://gotzsocketz.com');
+  req.once('socket', function(socket) {
+    t.type(socket, Object);
+    t.type(socket.getPeerCertificate(), 'string');
+    t.end();
+  });
+});
+
+test('socket emits connect and secureConnect', function(t) {
+  t.plan(3);
+
+  var scope = nock('http://gotzsocketz.com')
+     .post('/')
+     .reply(200, "hey");
+
+  var req = http.request({
+      host: "gotzsocketz.com"
+    , path: '/'
+    , method: 'POST'
+  });
+
+  req.on('socket', function(socket) {
+    socket.once('connect', function() {
+      req.end();
+      t.ok(true);
+    });
+    socket.once('secureConnect', function() {
+      t.ok(true);
+    });
+  });
+
+  req.once('response', function(res) {
+    res.setEncoding('utf8');
+    res.on('data', function(d) {
+      t.equal(d, 'hey');
+    });
+  });
+});
+
 test('socket setKeepAlive', function(t) {
   var scope = nock('http://setkeepalive.com')
      .get('/')
@@ -3256,4 +3335,48 @@ test('hyperquest works', function(t) {
     t.equals(reply, 'Yay hyperquest!');
     t.end();
   });
+});
+
+test('remove interceptor for GET resource', function(t) {
+  scope = nock('http://example.org')
+    .get('/somepath')
+    .reply(200, 'hey');
+
+  var mocks = scope.pendingMocks();
+  t.deepEqual(mocks, ['GET http://example.org:80/somepath']);
+
+  var result = nock.removeInterceptor({
+    hostname : 'example.org',
+    path : '/somepath'
+  });
+  t.ok(result, 'result should be true');
+
+  nock('http://example.org')
+    .get('/somepath')
+    .reply(202, 'other-content');
+
+  http.get({
+    host: 'example.org',
+    path : '/somepath'
+  }, function(res) {
+    res.setEncoding('utf8');
+    t.equal(res.statusCode, 202);
+
+    res.on('data', function(data) {
+      t.equal(data, 'other-content');
+    });
+
+    res.on('end', function() {
+      t.end();
+    });
+  });
+});
+
+test('remove interceptor for not found resource', function(t) {
+  var result = nock.removeInterceptor({
+    hostname : 'example.org',
+    path : '/somepath'
+  });
+  t.notOk(result, 'result should be false as no interceptor was found');
+  t.end();
 });
