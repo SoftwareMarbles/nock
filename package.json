@@ -7,7 +7,7 @@
     "testing",
     "isolation"
   ],
-  "version": "0.48.2",
+  "version": "0.56.0",
   "author": "Pedro Teixeira <pedro.teixeira@gmail.com>",
   "contributors": [
     {
@@ -85,6 +85,11 @@
       "name": "Ivan Erceg",
       "url": "https://github.com/ierceg",
       "email": "ivan@softwaremarbles.com"
+    },
+    {
+      "name": "Keith Laban",
+      "url": "https://github.com/kelaban",
+      "email": "kelaban17@gmail.com"
     }
   ],
   "repository": {
@@ -99,9 +104,11 @@
   ],
   "main": "./index",
   "dependencies": {
-    "propagate": "0.3.x",
+    "chai": "^1.9.2",
+    "debug": "^1.0.4",
     "lodash": "2.4.1",
-    "debug": "^1.0.4"
+    "mkdirp": "^0.5.0",
+    "propagate": "0.3.x"
   },
   "devDependencies": {
     "aws-sdk": "^2.0.15",
@@ -110,6 +117,7 @@
     "needle": "^0.7.1",
     "pre-commit": "0.0.9",
     "request": "*",
+    "restler": "3.2.2",
     "restify": "^2.8.1",
     "superagent": "~0.15.7",
     "tap": "*"

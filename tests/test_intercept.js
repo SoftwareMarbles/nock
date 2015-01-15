@@ -89,6 +89,36 @@ test("get gets mocked", function(t) {
   req.end();
 });
 
+test("get gets mocked with relative base path", function(t) {
+  var dataCalled = false;
+
+  var scope = nock('http://www.google.com/abc')
+    .get('/def')
+    .reply(200, "Hello World!");
+
+  var req = http.request({
+      host: "www.google.com",
+      path: '/abc/def',
+      port: 80
+  }, function(res) {
+
+    t.equal(res.statusCode, 200);
+    res.on('end', function() {
+      t.ok(dataCalled);
+      scope.done();
+      t.end();
+    });
+    res.on('data', function(data) {
+      dataCalled = true;
+      t.ok(data instanceof Buffer, "data should be buffer");
+      t.equal(data.toString(), "Hello World!", "response should match");
+    });
+
+  });
+
+  req.end();
+});
+
 test("post", function(t) {
   var dataCalled = false;
 
@@ -282,6 +312,32 @@ test("post with reply callback, uri, and request body", function(t) {
 
   req.write(input);
   req.end();
+});
+
+test("post with regexp as spec", function(t) {
+    var scope = nock('http://www.google.com')
+        .post('/echo', /key=v.?l/g)
+        .reply(200, function(uri, body) {
+            return ['OK', uri, body].join(' ');
+        });
+
+    var req = http.request({
+        host: "www.google.com"
+        , method: 'POST'
+        , path: '/echo'
+        , port: 80
+    }, function(res) {
+        res.on('end', function() {
+            scope.done();
+            t.end();
+        });
+        res.on('data', function(data) {
+            t.equal(data.toString(), 'OK /echo key=val' , 'response should match');
+        });
+    });
+
+    req.write('key=val');
+    req.end();
 });
 
 test("post with chaining on call", function(t) {
@@ -3425,8 +3481,12 @@ test('you must setup an interceptor for each request', function(t) {
 });
 
 test("teardown", function(t) {
-  t.deepEqual(Object.keys(global)
-    .splice(globalCount, Number.MAX_VALUE),
-    [], 'No leaks');
+  var leaks = Object.keys(global)
+    .splice(globalCount, Number.MAX_VALUE);
+
+  if (leaks.length == 1 && leaks[0] == '_key') {
+    leaks = [];
+  }
+  t.deepEqual(leaks, [], 'No leaks');
   t.end();
 });

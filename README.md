@@ -8,7 +8,51 @@ Nock can be used to test modules that perform HTTP requests in isolation.
 
 For instance, if a module performs HTTP requests to a CouchDB server or makes HTTP requests to the Amazon API, you can test that module in isolation.
 
-This does NOT work with Browserify, only node.js
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
+**Table of Contents**
+
+- [Install](#install)
+- [Use](#use)
+    - [READ THIS](#read-this)
+    - [Specifying request body](#specifying-request-body)
+    - [Specifying replies](#specifying-replies)
+    - [Specifying headers](#specifying-headers)
+        - [Header field names are case-insensitive](#header-field-names-are-case-insensitive)
+        - [Specifying Request Headers](#specifying-request-headers)
+        - [Specifying Reply Headers](#specifying-reply-headers)
+        - [Default Reply Headers](#default-reply-headers)
+    - [HTTP Verbs](#http-verbs)
+    - [Support for HTTP and HTTPS](#support-for-http-and-https)
+    - [Non-standard ports](#non-standard-ports)
+    - [Repeat response n times](#repeat-response-n-times)
+    - [Delay the response](#delay-the-response)
+    - [Delay the connection](#delay-the-connection)
+    - [Chaining](#chaining)
+    - [Scope filtering](#scope-filtering)
+    - [Path filtering](#path-filtering)
+    - [Request Body filtering](#request-body-filtering)
+    - [Request Headers Matching](#request-headers-matching)
+    - [Allow __unmocked__ requests on a mocked hostname](#allow-unmocked-requests-on-a-mocked-hostname)
+- [Expectations](#expectations)
+    - [.isDone()](#isdone)
+    - [.cleanAll()](#cleanall)
+    - [.persist()](#persist)
+    - [.pendingMocks()](#pendingmocks)
+- [Logging](#logging)
+- [Restoring](#restoring)
+- [Turning Nock Off (experimental!)](#turning-nock-off-experimental)
+- [Enable/Disable real HTTP request](#enabledisable-real-http-request)
+- [Recording](#recording)
+    - [`dont_print` option](#dontprint-option)
+    - [`output_objects` option](#outputobjects-option)
+    - [`enable_reqheaders_recording` option](#enablereqheadersrecording-option)
+    - [.removeInterceptor()](#removeinterceptor)
+- [How does it work?](#how-does-it-work)
+- [Debugging](#debugging)
+- [PROTIP](#protip)
+- [License](#license)
+
+<!-- markdown-toc end -->
 
 
 # Install
@@ -63,7 +107,17 @@ var scope = nock('http://myapp.iriscouch.com')
                 });
 ```
 
-The request body can be a string or a JSON object.
+The request body can be a string, a RegExp, or a JSON object.
+
+```js
+var scope = nock('http://myapp.iriscouch.com')
+                .post('/users', /email=.?@gmail.com/gi)
+                .reply(201, {
+                  ok: true,
+                  id: '123ABC',
+                  rev: '946B7D1C'
+                });
+```
 
 ## Specifying replies
 
@@ -142,14 +196,14 @@ Per [HTTP/1.1 4.2 Message Headers](http://www.w3.org/Protocols/rfc2616/rfc2616-s
 
 You can specify the request headers like this:
 
-```
+```js
 var scope = nock('http://www.example.com', {
-  reqheaders: {
-    'authorization': 'Basic Auth'
-  }
-})
-   .get('/')
-   .reply(200);
+      reqheaders: {
+        'authorization': 'Basic Auth'
+      }
+    })
+    .get('/')
+    .reply(200);
 ```
 
 If `reqheaders` is not specified or if `host` is not part of it, Nock will automatically add `host` value to request header.
@@ -288,7 +342,7 @@ var scope = nock('http://myapp.iriscouch.com')
 
 You can filter the scope (protocol, domain and port through) of a nock through a function. This filtering functions is defined at the moment of defining the nock's scope through its optional `options` parameters:
 
-This can be useful, for instance, if you have a node moduel that randomly changes subdomains to which it sends requests (e.g. Dropbox node module is like that)
+This can be useful, for instance, if you have a node module that randomly changes subdomains to which it sends requests (e.g. Dropbox node module is like that)
 
 ```js
 var scope = nock('https://api.dropbox.com', {
@@ -474,6 +528,7 @@ You can restore the HTTP interceptor to the normal unmocked behaviour by calling
 ```js
 nock.restore();
 ```
+**note**: restore does not clear the interceptor list. Use [nock.cleanAll()](#cleanall) if you expect the interceptor list to be empty.
 
 # Turning Nock Off (experimental!)
 
@@ -671,9 +726,102 @@ nock.removeInterceptor({
 });
 ```
 
+# Nock Back
+
+fixture recording support and playback
+
+## Setup
+
+**You must specify a fixture directory before using, for example:
+
+In your test helper
+
+```javascript
+var nockBack = require('nock').back;
+
+nockBack.fixtures = '/path/to/fixtures/';
+nockBack.setMode('record');
+```
+
+### Options
+
+- `nockBack.fixtures` : path to fixture directory
+- `nockBack.setMode()` : the mode to use
+
+
+## Usage
+
+By default if the fixture doesn't exist, a `nockBack` will create a new fixture and save the recorded output
+for you. The next time you run the test, if the fixture exists, it will be loaded in.
+
+The `this` context of the call back function will be have a property `scopes` to access all of the loaded
+nock scopes
+
+```javascript
+  var nockBack = require('nock').back;
+
+  nockBack.fixtures = '/path/to/fixtures/'; //this only needs to be set once in your test helper
+
+  var before = function (scope) {
+    scope.filteringRequestBody = function(body) {
+      if(typeof(body) !== 'string') {
+        return body;
+      }
+
+      return body.replace(/(timestamp):([0-9]+)/g, function(match, key, value) {
+        return key + ':timestampCapturedDuringRecording'
+      });
+
+    }
+  }
+
+  nockBack('someFixture.json', {before: before}, function (nockDone) {
+
+    http.get('http://zombo.com/').end(); // respond body "Ok"
+    this.assertScopesFinished(); //throws an exception if all nocks in fixture were not satisfied
+
+    nockDone();
+
+  });
+
+  nockBack('someFixture.json', function (nockDone) {
+
+    http.get('http://zombo.com/').end(); // respond body "Ok"
+    http.get('http://zombo.com/').end(); // throws exeption because someFixture.json only had one call
+
+    //never gets here
+    nockDone();
+
+  });
+
+```
+
+### Options
+
+As an optional second parameter you can pass the following options
+
+- `before`: a preprocessing function, gets called before nock.define
+- `after`: a postprocessing function, gets called after nock.define
+
+
+### Modes
+
+to set the mode call `nockBack.setMode(mode)` or run the tests with the `NOCK_BACK_MODE` environment variable set before loading nock. If the mode needs to be changed programatically, the following is valid: `nockBack.setMode(nockBack.currentMode)`
+
+- wild: all requests go out to the internet, dont replay anything, doesnt record anything
+
+- dryrun: The default, use recorded nocks, allow http calls, doesnt record anything, useful for writing new tests
+
+- record: use recorded nocks, record new nocks
+
+- lockdown: use recorded nocks, disables all http calls even when not nocked, doesnt record
+
 # How does it work?
 
 Nock works by overriding Node's `http.request` function. Also, it overrides `http.ClientRequest` too to cover for modules that use it directly.
+
+#Debugging
+Nock uses debug, so just run with enviromental variable DEBUG set to nock.*
 
 # PROTIP
 
